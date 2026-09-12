@@ -1,30 +1,54 @@
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
+import { prisma } from "@/lib/prisma";
+
+type RateLimitResult = {
+  allowed: boolean;
+  retryAfterSeconds: number;
 };
 
-const entries = new Map<string, RateLimitEntry>();
+export async function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> {
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowMs);
 
-export function checkRateLimit(key: string, limit: number, windowMs: number) {
-  const now = Date.now();
-  const current = entries.get(key);
+  const rows = await prisma.$queryRaw<
+    Array<{ count: number; resetAt: Date }>
+  >`
+    INSERT INTO "RateLimit" ("key", "count", "resetAt")
+    VALUES (${key}, 1, ${resetAt})
+    ON CONFLICT ("key")
+    DO UPDATE SET
+      "count" = CASE
+        WHEN "RateLimit"."resetAt" <= NOW() THEN 1
+        ELSE "RateLimit"."count" + 1
+      END,
+      "resetAt" = CASE
+        WHEN "RateLimit"."resetAt" <= NOW()
+          THEN EXCLUDED."resetAt"
+        ELSE "RateLimit"."resetAt"
+      END
+    RETURNING "count", "resetAt";
+  `;
 
-  if (!current || current.resetAt <= now) {
-    entries.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, retryAfterSeconds: Math.ceil(windowMs / 1000) };
-  }
+  const entry = rows[0];
 
-  if (current.count >= limit) {
+  if (!entry) {
     return {
       allowed: false,
-      retryAfterSeconds: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
+      retryAfterSeconds: 60,
     };
   }
 
-  current.count += 1;
+  const retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((entry.resetAt.getTime() - Date.now()) / 1000),
+  );
+
   return {
-    allowed: true,
-    retryAfterSeconds: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
+    allowed: entry.count <= limit,
+    retryAfterSeconds,
   };
 }
 

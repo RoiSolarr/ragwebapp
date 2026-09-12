@@ -16,7 +16,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rateLimit = checkRateLimit(`upload:${user.id}:${getRequestIp(request)}`, 10, 60 * 60 * 1000);
+  const rateLimit = await checkRateLimit(
+  `upload:${user.id}:${getRequestIp(request)}`,
+  10,
+  60 * 60 * 1000,
+);
+
   if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: "Upload limit reached. Please try again later." },
