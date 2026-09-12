@@ -64,7 +64,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!membership) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
 
-  const rateLimit = checkRateLimit(`chat:${user.id}:${getRequestIp(request)}`, 30, 60 * 60 * 1000);
+  const rateLimit = await checkRateLimit(
+  `chat:${user.id}:${getRequestIp(request)}`,
+  30,
+  60 * 60 * 1000,
+);
+
   if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: "Chat limit reached. Please try again later." },
