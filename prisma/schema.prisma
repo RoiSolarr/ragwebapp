@@ -122,3 +122,12 @@ model ChatMessage {
   @@index([workspaceId, createdAt])
   @@index([userId])
 }
+
+// Backs checkRateLimit() in src/lib/rate-limit.ts, which upserts rows here
+// via raw SQL (INSERT ... ON CONFLICT ("key")). `key` must stay the
+// primary key so that unique constraint exists for the conflict target.
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+}

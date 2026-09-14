@@ -1,16 +1,70 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { SiteHeader } from "@/components/site-header";
+import { DocumentsExplorer, type DocumentRow } from "@/components/documents/documents-explorer";
 
-type DocumentsPageProps = { searchParams: Promise<{ q?: string }> };
-function formatSize(bytes: number) { if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`; return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
-function fileKind(mime: string) { return mime.includes("pdf") ? "PDF" : mime.includes("markdown") ? "MD" : "TXT"; }
-export default async function DocumentsPage({ searchParams }: DocumentsPageProps) {
-  const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) redirect("/login");
-  const { q = "" } = await searchParams; const query = q.trim();
-  const documents = await prisma.document.findMany({ where: { workspace: { members: { some: { userId: user.id } } }, ...(query ? { OR: [{ name: { contains: query, mode: "insensitive" } }, { workspace: { name: { contains: query, mode: "insensitive" } } }] } : {}) }, include: { workspace: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" } });
+export default async function DocumentsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const documents = await prisma.document.findMany({
+    where: { workspace: { members: { some: { userId: user.id } } } },
+    include: { workspace: { select: { id: true, name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
   const indexed = documents.filter((document) => document.status === "COMPLETED").length;
-  return <div className="min-h-screen bg-paper"><SiteHeader variant="app" /><main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pb-20 sm:pt-10 lg:px-8"><div className="border-b border-line pb-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-indigo">Knowledge library</p><h1 className="mt-3 text-4xl font-bold tracking-tight text-ink sm:text-5xl">Documents</h1><p className="mt-3 max-w-xl text-sm leading-6 text-ink-muted">One place to see every source powering your workspaces and grounded answers.</p></div><div className="mt-7 grid gap-3 sm:grid-cols-3"><div className="dark-panel rounded-2xl p-5"><p className="text-xs uppercase tracking-[.16em] text-ink-muted">Total sources</p><p className="mt-2 text-3xl font-bold text-white">{documents.length}</p></div><div className="dark-panel rounded-2xl p-5"><p className="text-xs uppercase tracking-[.16em] text-ink-muted">Indexed and ready</p><p className="mt-2 text-3xl font-bold text-[#55cfff]">{indexed}</p></div><div className="dark-panel rounded-2xl p-5"><p className="text-xs uppercase tracking-[.16em] text-ink-muted">Workspaces covered</p><p className="mt-2 text-3xl font-bold text-[#a486ff]">{new Set(documents.map((document) => document.workspaceId)).size}</p></div></div><form className="mt-8 flex max-w-xl flex-col gap-2 sm:flex-row" method="get"><input name="q" defaultValue={q} className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-paper-raised px-4 text-sm outline-none focus:border-indigo" placeholder="Search by document or workspace name…" /><button className="h-12 rounded-xl border border-indigo/50 px-5 text-sm font-semibold text-indigo hover:bg-indigo/10">Search</button></form><section className="mt-5 overflow-hidden rounded-2xl border border-line bg-paper-raised"><div className="hidden grid-cols-[minmax(0,1.4fr)_1fr_110px_130px] gap-4 border-b border-line bg-[#0f2349] px-5 py-3 text-[10px] font-bold uppercase tracking-[.16em] text-ink-muted sm:grid"><span>Name</span><span>Workspace</span><span>Status</span><span>Size</span></div>{documents.length === 0 ? <div className="p-6 text-center text-sm text-ink-muted sm:p-10">{query ? "No documents or workspaces match your search." : "No documents yet. Open a workspace to upload your first source."}</div> : documents.map((document) => <div key={document.id} className="grid gap-3 border-b border-line px-4 py-4 last:border-0 sm:grid-cols-[minmax(0,1.4fr)_1fr_110px_130px] sm:items-center sm:gap-4 sm:px-5"><div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo/20 text-[10px] font-bold text-[#b49dff]">{fileKind(document.mimeType)}</span><div className="min-w-0"><p className="truncate text-sm font-semibold text-white">{document.name}</p><Link className="text-xs text-ink-muted hover:text-highlight" href={`/workspaces/${document.workspace.id}`}>{document.workspace.name}</Link></div></div><p className="text-xs text-ink-muted sm:block">{document.workspace.name}</p><span className="w-fit rounded-full border border-indigo/30 bg-indigo/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[.08em] text-[#b49dff]">{document.status.toLowerCase()}</span><p className="text-xs text-ink-muted">{formatSize(document.sizeBytes)}</p></div>)}</section></main></div>;
+
+  const rows: DocumentRow[] = documents.map((document) => ({
+    id: document.id,
+    name: document.name,
+    mimeType: document.mimeType,
+    sizeBytes: document.sizeBytes,
+    status: document.status,
+    createdAt: document.createdAt.toISOString(),
+    workspaceId: document.workspace.id,
+    workspaceName: document.workspace.name,
+  }));
+
+  return (
+    <div className="min-h-screen bg-paper">
+      <SiteHeader variant="app" />
+      <main className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pb-20 sm:pt-10 lg:px-8">
+        <div className="border-b border-line pb-7">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo">
+            Knowledge library
+          </p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-ink sm:text-5xl">
+            Documents
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-ink-muted">
+            One place to see every source powering your workspaces and grounded answers.
+          </p>
+        </div>
+
+        <div className="mt-7 grid gap-3 sm:grid-cols-3">
+          <div className="dark-panel rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-[.16em] text-ink-muted">Total sources</p>
+            <p className="mt-2 text-3xl font-bold text-white">{documents.length}</p>
+          </div>
+          <div className="dark-panel rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-[.16em] text-ink-muted">Indexed and ready</p>
+            <p className="mt-2 text-3xl font-bold text-[#55cfff]">{indexed}</p>
+          </div>
+          <div className="dark-panel rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-[.16em] text-ink-muted">Workspaces covered</p>
+            <p className="mt-2 text-3xl font-bold text-[#a486ff]">
+              {new Set(documents.map((document) => document.workspaceId)).size}
+            </p>
+          </div>
+        </div>
+
+        <DocumentsExplorer documents={rows} />
+      </main>
+    </div>
+  );
 }

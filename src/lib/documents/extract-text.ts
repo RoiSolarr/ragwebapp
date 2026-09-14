@@ -1,3 +1,4 @@
+import 'pdf-parse/worker';
 import { PDFParse } from "pdf-parse";
 
 export type DocumentType = "application/pdf" | "text/plain" | "text/markdown";

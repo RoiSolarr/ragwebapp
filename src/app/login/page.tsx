@@ -1,13 +1,203 @@
 "use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { SiteHeader } from "@/components/site-header";
+import { Spinner } from "@/components/ui/spinner";
 
-function EyeIcon({ closed = false }: { closed?: boolean }) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" d={closed ? "m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.5 10.5 0 0 1 12 4c5 0 8.5 4 9.5 6-.4.8-1.5 2.3-3.1 3.6M6.2 6.2C4.6 7.3 3.5 8.8 2.5 10c1 2 4.5 6 9.5 6 1 0 1.9-.2 2.7-.5" : "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"} />{!closed && <circle cx="12" cy="12" r="2.5" />}</svg>; }
+function EyeIcon({ closed = false }: { closed?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d={
+          closed
+            ? "m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.5 10.5 0 0 1 12 4c5 0 8.5 4 9.5 6-.4.8-1.5 2.3-3.1 3.6M6.2 6.2C4.6 7.3 3.5 8.8 2.5 10c1 2 4.5 6 9.5 6 1 0 1.9-.2 2.7-.5"
+            : "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"
+        }
+      />
+      {!closed && <circle cx="12" cy="12" r="2.5" />}
+    </svg>
+  );
+}
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [showPassword, setShowPassword] = useState(false); const [error, setError] = useState<string | null>(null); const [isLoading, setIsLoading] = useState(false);
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setError(null); setIsLoading(true); const { error: signInError } = await createClient().auth.signInWithPassword({ email, password }); if (signInError) { setError(signInError.message); setIsLoading(false); return; } window.location.assign("/workspaces"); }
-  return <div className="min-h-screen bg-[#061229]"><SiteHeader variant="minimal" /><main className="mx-auto grid min-h-[calc(100vh-90px)] max-w-7xl items-center gap-16 px-5 pb-12 sm:px-8 lg:grid-cols-[minmax(420px,510px)_1fr]"><section className="neon-glow reveal rounded-2xl border border-[#223663] bg-[#091532]/90 p-7 sm:p-10"><div className="text-center"><span className="brand-mark mx-auto grid h-12 w-12 place-items-center rounded-2xl text-2xl font-black">N</span><h1 className="mt-3 text-3xl font-bold tracking-tight text-white">Welcome back</h1><p className="mt-2 text-sm text-ink-muted">Sign in to access your personal AI knowledge base<br className="hidden sm:block" /> and turn your information into insight.</p></div><form className="mt-9 space-y-5" onSubmit={handleSubmit}><label className="block text-sm font-semibold text-white">Email address<span className="relative mt-2 block"><span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-[#6f87b8]">✉</span><input className="h-12 w-full rounded-xl border border-[#29416f] bg-[#0a1836] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-[#7085ad] focus:border-[#6675ff]" type="email" placeholder="you@domain.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></span></label><label className="block text-sm font-semibold text-white">Password<span className="relative mt-2 block"><span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-[#6f87b8]">▣</span><input className="h-12 w-full rounded-xl border border-[#29416f] bg-[#0a1836] px-10 text-sm text-white outline-none transition placeholder:text-[#7085ad] focus:border-[#6675ff]" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required /><button type="button" onClick={() => setShowPassword(v => !v)} className="absolute inset-y-0 right-0 w-11 text-[#7085ad] hover:text-[#4c43ce]" aria-label="Toggle password visibility"><EyeIcon closed={!showPassword} /></button></span></label><div className="-mt-2 text-right"><Link href="/forgot-password" className="text-xs font-semibold text-[#7f74ff] hover:text-[#55cfff]">Forgot password?</Link></div>{error && <p role="alert" className="rounded-xl border border-signal/30 bg-signal/10 px-3 py-2 text-sm text-signal">{error}</p>}<button className="gradient-button h-12 w-full rounded-xl text-sm font-bold text-white transition" type="submit" disabled={isLoading}>{isLoading ? "Signing in…" : "Sign in  →"}</button></form><p className="mt-7 text-center text-sm text-ink-muted">Don&apos;t have an account? <Link className="font-semibold text-[#7f74ff]" href="/signup">Create an account →</Link></p></section><section className="hidden lg:block"><div className="relative mx-auto max-w-xl"><div className="absolute left-1/2 top-8 h-64 w-64 -translate-x-1/2 rounded-full bg-[#4b35f4]/30 blur-3xl" /><div className="relative mx-auto mb-12 grid h-64 w-80 place-items-center rounded-[2rem] border border-[#3252aa] bg-gradient-to-br from-[#162f76] to-[#10164d] shadow-[0_0_70px_rgba(67,70,255,.35)]"><div className="text-8xl text-[#a575ff]">⌕</div></div><h2 className="text-4xl font-bold leading-tight text-white">Your knowledge.<br /><span className="text-[#8566ff]">Supercharged by AI.</span></h2><p className="mt-5 max-w-md text-lg leading-8 text-ink-muted">Save, organize, and search your notes, docs, and ideas — with the power of AI.</p><div className="mt-9 grid grid-cols-3 gap-6 text-sm"><div><span className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-[#182c73] text-[#8f76ff]">✦</span><b className="text-white">Smart search</b><p className="mt-1 text-xs leading-5 text-ink-muted">Find what you need, instantly.</p></div><div><span className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-[#182c73] text-[#55cfff]">▤</span><b className="text-white">All your knowledge</b><p className="mt-1 text-xs leading-5 text-ink-muted">Notes, docs, links, and more.</p></div><div><span className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-[#182c73] text-[#8f76ff]">♧</span><b className="text-white">AI assistance</b><p className="mt-1 text-xs leading-5 text-ink-muted">Get answers and summaries.</p></div></div></div></section></main></div>;
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isLoading) return;
+    setError(null);
+    setIsLoading(true);
+
+    const { error: signInError } = await createClient().auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      setIsLoading(false);
+      return;
+    }
+
+    router.push("/workspaces");
+    router.refresh();
+  }
+
+  return (
+    <div className="min-h-screen bg-[#061229]">
+      <SiteHeader variant="minimal" />
+      <main className="mx-auto grid min-h-[calc(100vh-90px)] max-w-7xl items-center gap-16 px-5 pb-12 sm:px-8 lg:grid-cols-[minmax(420px,510px)_1fr]">
+        <section className="neon-glow reveal rounded-2xl border border-[#223663] bg-[#091532]/90 p-7 sm:p-10">
+          <div className="text-center">
+            <span className="brand-mark mx-auto grid h-12 w-12 place-items-center rounded-2xl text-2xl font-black">
+              N
+            </span>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-white">Welcome back</h1>
+            <p className="mt-2 text-sm text-ink-muted">
+              Sign in to access your personal AI knowledge base
+              <br className="hidden sm:block" /> and turn your information into insight.
+            </p>
+          </div>
+
+          <form className="mt-9 space-y-5" onSubmit={handleSubmit}>
+            <label className="block text-sm font-semibold text-white">
+              Email address
+              <span className="relative mt-2 block">
+                <span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-[#6f87b8]">
+                  ✉
+                </span>
+                <input
+                  className="h-12 w-full rounded-xl border border-[#29416f] bg-[#0a1836] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-[#7085ad] focus:border-[#6675ff]"
+                  type="email"
+                  placeholder="you@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </span>
+            </label>
+
+            <label className="block text-sm font-semibold text-white">
+              Password
+              <span className="relative mt-2 block">
+                <span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-[#6f87b8]">
+                  ▣
+                </span>
+                <input
+                  className="h-12 w-full rounded-xl border border-[#29416f] bg-[#0a1836] px-10 text-sm text-white outline-none transition placeholder:text-[#7085ad] focus:border-[#6675ff]"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 w-11 text-[#7085ad] hover:text-[#4c43ce]"
+                  aria-label="Toggle password visibility"
+                >
+                  <EyeIcon closed={!showPassword} />
+                </button>
+              </span>
+            </label>
+
+            <div className="-mt-2 text-right">
+              <Link href="/forgot-password" className="text-xs font-semibold text-[#7f74ff] hover:text-[#55cfff]">
+                Forgot password?
+              </Link>
+            </div>
+
+            {error ? (
+              <p role="alert" className="rounded-xl border border-signal/30 bg-signal/10 px-3 py-2 text-sm text-signal">
+                {error}
+              </p>
+            ) : null}
+
+            <button
+              className="gradient-button flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-70"
+              type="submit"
+              disabled={isLoading}
+              aria-busy={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Signing in…
+                </>
+              ) : (
+                <>Sign in&nbsp;&nbsp;→</>
+              )}
+            </button>
+          </form>
+
+          <p className="mt-7 text-center text-sm text-ink-muted">
+            Don&apos;t have an account?{" "}
+            <Link className="font-semibold text-[#7f74ff]" href="/signup">
+              Create an account →
+            </Link>
+          </p>
+        </section>
+
+        <section className="hidden lg:block">
+          <div className="relative mx-auto max-w-xl">
+            <div className="absolute left-1/2 top-8 h-64 w-64 -translate-x-1/2 rounded-full bg-[#4b35f4]/30 blur-3xl" />
+            <div className="relative mx-auto mb-12 grid h-64 w-80 place-items-center rounded-[2rem] border border-[#3252aa] bg-gradient-to-br from-[#162f76] to-[#10164d] shadow-[0_0_70px_rgba(67,70,255,.35)]">
+              <div className="text-8xl text-[#a575ff]">⌕</div>
+            </div>
+            <h2 className="text-4xl font-bold leading-tight text-white">
+              Your knowledge.
+              <br />
+              <span className="text-[#8566ff]">Supercharged by AI.</span>
+            </h2>
+            <p className="mt-5 max-w-md text-lg leading-8 text-ink-muted">
+              Save, organize, and search your notes, docs, and ideas — with the power of AI.
+            </p>
+            <div className="mt-9 grid grid-cols-3 gap-6 text-sm">
+              <div>
+                <span className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-[#182c73] text-[#8f76ff]">
+                  ✦
+                </span>
+                <b className="text-white">Smart search</b>
+                <p className="mt-1 text-xs leading-5 text-ink-muted">Find what you need, instantly.</p>
+              </div>
+              <div>
+                <span className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-[#182c73] text-[#55cfff]">
+                  ▤
+                </span>
+                <b className="text-white">All your knowledge</b>
+                <p className="mt-1 text-xs leading-5 text-ink-muted">Notes, docs, links, and more.</p>
+              </div>
+              <div>
+                <span className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-[#182c73] text-[#8f76ff]">
+                  ♧
+                </span>
+                <b className="text-white">AI assistance</b>
+                <p className="mt-1 text-xs leading-5 text-ink-muted">Get answers and summaries.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 }

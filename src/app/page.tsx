@@ -5,23 +5,171 @@ import { buttonClass } from "@/components/ui/button";
 import { SITE } from "@/lib/site";
 
 const steps = [
-  { n: "01", title: "Upload", body: "Drop in PDFs, plain text, or Markdown notes. Each file stays inside the workspace you put it in." },
-  { n: "02", title: "Index", body: "Every document is split into passages and embedded, so meaning — not just keywords — becomes searchable." },
-  { n: "03", title: "Ask", body: "Ask a question in plain language and get an answer with the exact passages it was drawn from." },
+  {
+    n: "01",
+    title: "Upload",
+    body: "Drop in PDFs, plain text, or Markdown notes. Each file stays inside the workspace you put it in.",
+  },
+  {
+    n: "02",
+    title: "Index",
+    body: "Every document is split into passages and embedded, so meaning — not just keywords — becomes searchable.",
+  },
+  {
+    n: "03",
+    title: "Ask",
+    body: "Ask a question in plain language and get an answer with the exact passages it was drawn from.",
+  },
 ];
+
 const features = [
-  { title: "Workspaces with real permissions", body: "Keep a personal workspace for your own notes, or share one with a team. Owners, members, and viewers each see only what they should." },
-  { title: "Answers you can check", body: "Every answer links back to the passage it came from, so you can verify it in seconds instead of taking it on faith." },
-  { title: "Built for real documents", body: "PDFs, plain text, and Markdown are parsed, chunked, and embedded the moment you upload them — no extra steps." },
+  {
+    title: "Workspaces with real permissions",
+    body: "Keep a personal workspace for your own notes, or share one with a team. Owners, members, and viewers each see only what they should.",
+  },
+  {
+    title: "Answers you can check",
+    body: "Every answer links back to the passage it came from, so you can verify it in seconds instead of taking it on faith.",
+  },
+  {
+    title: "Built for real documents",
+    body: "PDFs, plain text, and Markdown are parsed, chunked, and embedded the moment you upload them — no extra steps.",
+  },
 ];
 
 export default function HomePage() {
-  return <div className="min-h-screen overflow-hidden bg-[#061229]"><SiteHeader />
-    <section className="relative"><div className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_68%_32%,rgba(116,96,255,.24),transparent_32%),radial-gradient(circle_at_10%_80%,rgba(53,215,255,.12),transparent_30%),linear-gradient(180deg,rgba(9,27,61,.7),transparent)]" aria-hidden="true" />
-      <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-5 pb-20 pt-10 sm:px-6 lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:gap-16 lg:pb-28 lg:pt-16"><div className="reveal"><p className="mb-5 inline-flex items-center gap-2 rounded-full border border-indigo/20 bg-paper-raised/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.18em] text-indigo"><span className="h-1.5 w-1.5 rounded-full bg-signal" /> Private knowledge, made useful</p><h1 className="max-w-xl text-balance font-serif text-[2.9rem] font-semibold leading-[1.02] tracking-[-.045em] text-ink sm:text-6xl">Answers that show their work.</h1><p className="mt-6 max-w-md text-lg leading-8 text-ink-muted">Upload PDFs, notes, and wikis to a workspace. {SITE.name} finds the passages that answer your question and shows you exactly where the answer came from.</p><div className="mt-8 flex flex-wrap items-center gap-3"><Link href="/signup" className={buttonClass({ size: "lg", className: "gradient-button border-0 text-white" })}>Get started <span aria-hidden="true">↗</span></Link><Link href="/login" className={buttonClass({ variant: "outline", size: "lg", className: "border-indigo text-indigo hover:bg-indigo/10" })}>Sign in</Link></div><div className="mt-7 flex items-center gap-3 text-xs font-medium text-ink-muted"><span className="flex -space-x-1.5"><span className="h-6 w-6 rounded-full border-2 border-paper bg-indigo" /><span className="h-6 w-6 rounded-full border-2 border-paper bg-highlight" /><span className="h-6 w-6 rounded-full border-2 border-paper bg-signal" /></span> Grounded in the documents you trust</div></div><div className="reveal lg:pt-5" style={{ animationDelay: "120ms" }}><RagDemo /></div></div></section>
-    <section className="border-y border-line bg-[#081735]/80"><div className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-6 sm:py-20"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-indigo">A clear path to clarity</p><h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">From scattered files to shared understanding.</h2></div><p className="max-w-xs text-sm leading-6 text-ink-muted">One focused loop for the knowledge your team already has.</p></div><div className="mt-12 grid gap-8 sm:grid-cols-3">{steps.map((step) => <div key={step.n} className="relative border-t-2 border-indigo pt-5"><p className="text-xs font-bold tracking-[.18em] text-indigo">{step.n}</p><h3 className="mt-5 text-lg font-semibold text-ink">{step.title}</h3><p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p></div>)}</div></div></section>
-    <section className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-6 sm:py-24"><div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:gap-20"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-indigo">Designed for confidence</p><h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Built to be trusted with your documents.</h2><p className="mt-5 max-w-sm text-sm leading-7 text-ink-muted">Everything below is already wired up — from role-based workspaces to grounded, citation-backed answers.</p></div><div className="divide-y divide-line border-y border-line">{features.map((feature) => <div key={feature.title} className="grid gap-2 py-6 sm:grid-cols-[minmax(0,220px)_1fr] sm:gap-8"><h3 className="text-base font-semibold text-ink">{feature.title}</h3><p className="text-sm leading-6 text-ink-muted">{feature.body}</p></div>)}</div></div></section>
-    <section className="border-t border-line bg-[#040b1b] text-white"><div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-highlight">Start with one question</p><h2 className="mt-3 font-serif text-3xl font-semibold">Your documents, finally searchable.</h2><p className="mt-2 text-sm text-white/60">Create a workspace and upload your first document in under a minute.</p></div><Link href="/signup" className={buttonClass({ size: "lg", className: "gradient-button border-0 text-white" })}>Get started <span aria-hidden="true">↗</span></Link></div></section>
-    <footer className="border-t border-white/10 bg-[#040b1b] px-5 py-7 text-sm text-white/50 sm:px-6"><div className="mx-auto flex w-full max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><span className="font-serif text-base text-white">{SITE.name}.</span><span>{SITE.tagline}</span></div></footer>
-  </div>;
+  return (
+    <div className="min-h-screen overflow-hidden bg-[#061229]">
+      <SiteHeader />
+
+      <section className="relative">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_68%_32%,rgba(116,96,255,.24),transparent_32%),radial-gradient(circle_at_10%_80%,rgba(53,215,255,.12),transparent_30%),linear-gradient(180deg,rgba(9,27,61,.7),transparent)]"
+          aria-hidden="true"
+        />
+        <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-5 pb-20 pt-10 sm:px-6 lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:gap-16 lg:pb-28 lg:pt-16">
+          <div className="reveal">
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-indigo/20 bg-paper-raised/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.18em] text-indigo">
+              <span className="h-1.5 w-1.5 rounded-full bg-signal" /> Private knowledge, made
+              useful
+            </p>
+            <h1 className="max-w-xl text-balance font-serif text-[2.9rem] font-semibold leading-[1.02] tracking-[-.045em] text-ink sm:text-6xl">
+              Answers that show their work.
+            </h1>
+            <p className="mt-6 max-w-md text-lg leading-8 text-ink-muted">
+              Upload PDFs, notes, and wikis to a workspace. {SITE.name} finds the passages
+              that answer your question and shows you exactly where the answer came from.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link href="/signup" className={buttonClass({ size: "lg", className: "gradient-button border-0 text-white" })}>
+                Get started <span aria-hidden="true">↗</span>
+              </Link>
+              <Link
+                href="/login"
+                className={buttonClass({
+                  variant: "outline",
+                  size: "lg",
+                  className: "border-indigo text-indigo hover:bg-indigo/10",
+                })}
+              >
+                Sign in
+              </Link>
+            </div>
+            <div className="mt-7 flex items-center gap-3 text-xs font-medium text-ink-muted">
+              <span className="flex -space-x-1.5">
+                <span className="h-6 w-6 rounded-full border-2 border-paper bg-indigo" />
+                <span className="h-6 w-6 rounded-full border-2 border-paper bg-highlight" />
+                <span className="h-6 w-6 rounded-full border-2 border-paper bg-signal" />
+              </span>{" "}
+              Grounded in the documents you trust
+            </div>
+          </div>
+          <div className="reveal lg:pt-5" style={{ animationDelay: "120ms" }}>
+            <RagDemo />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-line bg-[#081735]/80">
+        <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-6 sm:py-20">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo">
+                A clear path to clarity
+              </p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+                From scattered files to shared understanding.
+              </h2>
+            </div>
+            <p className="max-w-xs text-sm leading-6 text-ink-muted">
+              One focused loop for the knowledge your team already has.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-8 sm:grid-cols-3">
+            {steps.map((step) => (
+              <div key={step.n} className="relative border-t-2 border-indigo pt-5">
+                <p className="text-xs font-bold tracking-[.18em] text-indigo">{step.n}</p>
+                <h3 className="mt-5 text-lg font-semibold text-ink">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-6 sm:py-24">
+        <div className="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo">
+              Designed for confidence
+            </p>
+            <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+              Built to be trusted with your documents.
+            </h2>
+            <p className="mt-5 max-w-sm text-sm leading-7 text-ink-muted">
+              Everything below is already wired up — from role-based workspaces to
+              grounded, citation-backed answers.
+            </p>
+          </div>
+          <div className="divide-y divide-line border-y border-line">
+            {features.map((feature) => (
+              <div
+                key={feature.title}
+                className="grid gap-2 py-6 sm:grid-cols-[minmax(0,220px)_1fr] sm:gap-8"
+              >
+                <h3 className="text-base font-semibold text-ink">{feature.title}</h3>
+                <p className="text-sm leading-6 text-ink-muted">{feature.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-line bg-[#040b1b] text-white">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-highlight">
+              Start with one question
+            </p>
+            <h2 className="mt-3 font-serif text-3xl font-semibold">
+              Your documents, finally searchable.
+            </h2>
+            <p className="mt-2 text-sm text-white/60">
+              Create a workspace and upload your first document in under a minute.
+            </p>
+          </div>
+          <Link href="/signup" className={buttonClass({ size: "lg", className: "gradient-button border-0 text-white" })}>
+            Get started <span aria-hidden="true">↗</span>
+          </Link>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 bg-[#040b1b] px-5 py-7 text-sm text-white/50 sm:px-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="font-serif text-base text-white">{SITE.name}.</span>
+          <span>{SITE.tagline}</span>
+        </div>
+      </footer>
+    </div>
+  );
 }
