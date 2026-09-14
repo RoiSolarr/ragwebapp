@@ -39,4 +39,5 @@ export async function createWorkspace(formData: FormData) {
   });
 
   revalidatePath("/chat");
+  revalidatePath("/workspaces");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseJsonResponse } from "@/lib/fetch-json";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -25,6 +25,10 @@ export function WorkspaceGrid({ initialWorkspaces }: WorkspaceGridProps) {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setWorkspaces(initialWorkspaces);
+  }, [initialWorkspaces]);
 
   const allSelected = workspaces.length > 0 && selectedIds.size === workspaces.length;
 
