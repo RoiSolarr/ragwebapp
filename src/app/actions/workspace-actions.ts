@@ -38,5 +38,5 @@ export async function createWorkspace(formData: FormData) {
     },
   });
 
-  revalidatePath("/workspaces");
+  revalidatePath("/chat");
 }
