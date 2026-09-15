@@ -141,9 +141,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (error instanceof RAGGenerationError) {
         // 429 -> transient, worth the client retrying shortly.
         // 503 -> not going to recover within this request (e.g. a daily quota).
+        const headers: Record<string, string> = {};
+        if (error.retryAfterSeconds && Number.isFinite(error.retryAfterSeconds)) {
+          headers["Retry-After"] = String(Math.ceil(error.retryAfterSeconds));
+        }
+
         return NextResponse.json(
           { error: error.message },
-          { status: error.retryable ? 429 : 503 },
+          { status: error.retryable ? 429 : 503, headers },
         );
       }
 
