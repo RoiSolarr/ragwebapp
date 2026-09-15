@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getWorkspaceMembership } from "@/lib/workspace-access";
 import { getEmbedding } from "@/lib/ai/embeddings";
-import { generateRAGAnswer } from "@/lib/ai/chat";
+import { generateRAGAnswer, RAGGenerationError } from "@/lib/ai/chat";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -137,6 +137,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     } catch (error) {
       console.error("Chat generation error:", error);
       await prisma.chatMessage.delete({ where: { id: userMessage.id } });
+
+      if (error instanceof RAGGenerationError) {
+        // 429 -> transient, worth the client retrying shortly.
+        // 503 -> not going to recover within this request (e.g. a daily quota).
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.retryable ? 429 : 503 },
+        );
+      }
+
       return NextResponse.json({ error: "Failed to generate an answer. Please try again." }, { status: 502 });
     }
   }
