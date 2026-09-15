@@ -6,8 +6,9 @@ const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 // GA flash model.
 const CHAT_MODEL = "gemini-3.5-flash";
 
-const MAX_ATTEMPTS = 3;
-const RETRY_DELAYS_MS = [500, 1500];
+const MAX_ATTEMPTS = 5;
+const BASE_DELAY_MS = 1000;
+const MAX_DELAY_MS = 8000;
 
 function isPermanentError(error: unknown): boolean {
   const status =
@@ -20,6 +21,15 @@ function isPermanentError(error: unknown): boolean {
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Exponential backoff with jitter: attempt 0 -> ~1s, 1 -> ~2s, 2 -> ~4s,
+// 3 -> ~8s (capped), each randomized so concurrent requests don't retry
+// in lockstep and re-collide against an overloaded model.
+function backoffDelay(attempt: number): number {
+  const exp = Math.min(BASE_DELAY_MS * 2 ** attempt, MAX_DELAY_MS);
+  const jitter = Math.random() * exp * 0.5;
+  return exp / 2 + jitter;
 }
 
 export async function generateRAGAnswer(query: string, context: string) {
@@ -47,7 +57,7 @@ export async function generateRAGAnswer(query: string, context: string) {
       }
 
       console.warn(`generateRAGAnswer attempt ${attempt + 1} failed, retrying...`, error);
-      await wait(RETRY_DELAYS_MS[attempt]);
+      await wait(backoffDelay(attempt));
     }
   }
 
