@@ -8,6 +8,11 @@ import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
+// Chat generation retries with backoff and can take longer than the
+// platform default timeout. Set this to whatever your plan allows
+// (Hobby currently caps at 60; Pro allows more).
+export const maxDuration = 60;
+
 const MAX_QUESTION_LENGTH = 2000;
 const TOP_K = 6;
 
@@ -94,7 +99,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     data: { workspaceId, userId: user.id, role: "user", content: question },
   });
 
-  const queryEmbedding = await getEmbedding(question, "RETRIEVAL_QUERY");
+  let queryEmbedding: number[];
+  try {
+    queryEmbedding = await getEmbedding(question, "RETRIEVAL_QUERY");
+  } catch (error) {
+    console.error("Embedding error:", error);
+    await prisma.chatMessage.delete({ where: { id: userMessage.id } });
+    return NextResponse.json({ error: "Failed to process the question. Please try again." }, { status: 502 });
+  }
+
   if (queryEmbedding.length === 0) {
     await prisma.chatMessage.delete({ where: { id: userMessage.id } });
     return NextResponse.json({ error: "Failed to process the question. Please try again." }, { status: 502 });
