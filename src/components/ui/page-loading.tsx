@@ -1,22 +1,36 @@
 import { SiteHeader } from "@/components/site-header";
-import { Spinner } from "@/components/ui/spinner";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
+
+type PageLoadingProps = {
+  title: string;
+  description: string;
+};
 
 /**
  * Rendered by every app route's `loading.tsx` (Next.js shows this
  * automatically while the target page's server component is still
  * fetching data). Keeping the same sidebar + shell here as the real
- * pages avoids a layout jump when the real content swaps in.
+ * pages avoids a layout jump when the real content swaps in; the
+ * skeleton underneath is blurred by the blocking overlay on top.
  */
-export function PageLoading() {
+export function PageLoading({ title, description }: PageLoadingProps) {
   return (
     <div className="min-h-screen bg-paper">
       <SiteHeader variant="app" />
-      <main className="mx-auto flex w-full max-w-7xl items-center justify-center px-4 py-24 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center gap-3 text-ink-muted">
-          <Spinner className="h-8 w-8" label="Loading page" />
-          <p className="text-sm">Loading…</p>
+      <main className="mx-auto w-full max-w-6xl px-5 pb-20 pt-8 sm:px-6 sm:pt-12" aria-hidden="true">
+        <div className="border-b border-line pb-8">
+          <div className="h-3 w-32 rounded-full bg-white/[.08]" />
+          <div className="mt-4 h-10 w-64 max-w-full rounded-xl bg-white/[.08]" />
+          <div className="mt-4 h-3 w-80 max-w-full rounded-full bg-white/[.06]" />
         </div>
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="dark-panel h-28 rounded-2xl" />
+          ))}
+        </div>
+        <div className="dark-panel mt-5 h-64 rounded-2xl" />
       </main>
+      <LoadingOverlay title={title} description={description} />
     </div>
   );
 }

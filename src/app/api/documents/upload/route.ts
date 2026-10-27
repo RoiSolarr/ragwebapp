@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { getWorkspaceMembership } from "@/lib/workspace-access";
 import { ingestDocument, MAX_FILE_SIZE_BYTES, UploadValidationError } from "@/lib/documents/ingest";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
@@ -7,20 +7,18 @@ import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rateLimit = await checkRateLimit(
-  `upload:${user.id}:${getRequestIp(request)}`,
-  10,
-  60 * 60 * 1000,
-);
+  // The rate-limit check and reading the uploaded file don't depend on
+  // each other, so they run together.
+  const [rateLimit, formData] = await Promise.all([
+    checkRateLimit(`upload:${user.id}:${getRequestIp(request)}`, 10, 60 * 60 * 1000),
+    request.formData().catch(() => null),
+  ]);
 
   if (!rateLimit.allowed) {
     return NextResponse.json(
@@ -29,10 +27,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let formData: FormData;
-  try {
-    formData = await request.formData();
-  } catch {
+  if (!formData) {
     return NextResponse.json({ error: "Invalid upload request" }, { status: 400 });
   }
 

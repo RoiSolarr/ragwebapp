@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 type ProfileFormState = { error?: string; success?: boolean };
 const initialState: ProfileFormState = {};
@@ -18,6 +19,8 @@ export function ProfileForm({ email }: { email: string }) {
 
   return (
     <form action={formAction} className="space-y-5">
+      {isPending ? <LoadingOverlay title="Updating password" description="Saving your new password." /> : null}
+
       <label className="block text-sm font-semibold text-ink">
         Email
         <Input className="mt-2 bg-paper-raised" type="email" value={email} readOnly aria-readonly="true" />

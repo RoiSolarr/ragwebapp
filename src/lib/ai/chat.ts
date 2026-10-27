@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -216,6 +216,11 @@ export async function generateRAGAnswer(query: string, context: string) {
   for (let modelIndex = 0; modelIndex < CHAT_MODELS.length; modelIndex++) {
     const model = CHAT_MODELS[modelIndex];
     const hasFallbackModel = modelIndex < CHAT_MODELS.length - 1;
+    // Gemini 3.x Flash models think at a high level by default, which adds
+    // seconds to every answer. Answering from passages we hand it doesn't
+    // need deep reasoning, so ask for a low level. If a model rejects the
+    // setting (400), it's dropped and that attempt is retried without it.
+    let useLowThinking = true;
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS_PER_MODEL; attempt++) {
       if (Date.now() >= deadline - MIN_REQUEST_TIME_MS) break;
@@ -230,6 +235,7 @@ export async function generateRAGAnswer(query: string, context: string) {
               "Cite the source for every claim by putting its bracketed number, e.g. [1], " +
               "immediately after the sentence it supports. If the sources don't contain " +
               "the answer, say so plainly instead of guessing.",
+            ...(useLowThinking ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } } : {}),
           },
         });
         return result.text ?? "";
@@ -238,6 +244,13 @@ export async function generateRAGAnswer(query: string, context: string) {
 
         const status = getStatus(error);
         const isLastAttempt = attempt === MAX_ATTEMPTS_PER_MODEL - 1;
+
+        if (status === 400 && useLowThinking) {
+          console.warn(`Chat model "${model}" rejected thinkingLevel; retrying without it.`, error);
+          useLowThinking = false;
+          attempt--;
+          continue;
+        }
 
         // Model retired, renamed, or not enabled for this key. Retrying the
         // same name can't help, but the next model in the list might work.

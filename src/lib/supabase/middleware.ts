@@ -38,7 +38,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims() refreshes an expiring session (writing the new cookies via
+  // the handlers above) and then verifies the token locally when the
+  // project uses asymmetric JWT signing keys, so this proxy, which runs on
+  // every request, doesn't have to wait on the Supabase Auth server.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
 
   // Redirect unauthenticated users trying to access protected workspace routes
   if (!user && request.nextUrl.pathname.startsWith("/workspaces")) {

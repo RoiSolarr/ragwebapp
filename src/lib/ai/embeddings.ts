@@ -27,3 +27,39 @@ export async function getEmbedding(
   });
   return result.embeddings?.[0]?.values ?? [];
 }
+
+// batchEmbedContents accepts at most 100 texts per request.
+const EMBEDDING_BATCH_SIZE = 100;
+
+/**
+ * Embeds many texts with one API request per 100 texts, instead of one
+ * request per text. Results come back in the same order as `texts`.
+ * Batches are sent one after another (not all at once) to stay inside
+ * the Gemini free tier's per-minute request limits.
+ */
+export async function getEmbeddings(
+  texts: string[],
+  taskType: EmbeddingTaskType = "RETRIEVAL_DOCUMENT"
+): Promise<number[][]> {
+  const embeddings: number[][] = [];
+
+  for (let start = 0; start < texts.length; start += EMBEDDING_BATCH_SIZE) {
+    const batch = texts.slice(start, start + EMBEDDING_BATCH_SIZE);
+    const result = await genAI.models.embedContent({
+      model: EMBEDDING_MODEL,
+      contents: batch,
+      config: {
+        taskType,
+        outputDimensionality: EMBEDDING_DIMENSIONS,
+      },
+    });
+
+    const values = result.embeddings?.map((embedding) => embedding.values ?? []) ?? [];
+    if (values.length !== batch.length) {
+      throw new Error(`Expected ${batch.length} embeddings but received ${values.length}.`);
+    }
+    embeddings.push(...values);
+  }
+
+  return embeddings;
+}

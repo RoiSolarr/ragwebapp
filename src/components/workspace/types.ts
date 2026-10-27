@@ -10,6 +10,14 @@ export type DocumentSummary = {
   createdAt: string;
 };
 
+export type ChatHistoryMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sources: ChatSource[];
+  createdAt: string;
+};
+
 export type ChatSource = {
   index: number;
   documentId: string;

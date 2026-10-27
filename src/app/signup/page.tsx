@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { SiteHeader } from "@/components/site-header";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -28,7 +29,11 @@ export default function SignupPage() {
     }
 
     setIsLoading(true);
-    const { data, error: signUpError } = await createClient().auth.signUp({ email, password });
+    const { data, error: signUpError } = await createClient().auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/workspaces` },
+    });
 
     if (signUpError) {
       setError(signUpError.message);
@@ -129,6 +134,10 @@ export default function SignupPage() {
               )}
             </button>
           </form>
+
+          {isLoading ? (
+            <LoadingOverlay title="Creating your account" description="Setting up your knowledge base." />
+          ) : null}
 
           <p className="mt-7 text-center text-sm text-ink-muted">
             Already have an account?{" "}

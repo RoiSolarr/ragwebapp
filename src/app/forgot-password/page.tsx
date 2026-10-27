@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { SiteHeader } from "@/components/site-header";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,9 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     const { error: resetError } = await createClient().auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/profile`,
+      // The link comes back with a one-time `code` that /auth/callback swaps
+      // for a session, so /profile opens signed in and ready for a new password.
+      redirectTo: `${window.location.origin}/auth/callback?next=/profile`,
     });
 
     if (resetError) {
@@ -88,6 +91,8 @@ export default function ForgotPasswordPage() {
               )}
             </button>
           </form>
+
+          {loading ? <LoadingOverlay title="Sending reset link" description="Emailing you a secure link." /> : null}
 
           <p className="mt-7 text-center text-sm text-ink-muted">
             <Link href="/login" className="font-semibold text-[#7f74ff]">

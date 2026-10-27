@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { createWorkspace } from "@/app/actions/workspace-actions";
 import { SiteHeader } from "@/components/site-header";
@@ -7,10 +7,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { WorkspaceGrid, type WorkspaceCardData } from "@/components/workspace/workspace-grid";
 
 export default async function ChatPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const workspaces = await prisma.workspace.findMany({
@@ -57,6 +54,7 @@ export default async function ChatPage() {
           />
           <SubmitButton
             pendingChildren="Creating…"
+            overlay={{ title: "Creating workspace", description: "Setting up your new workspace." }}
             className="h-12 shrink-0 rounded-xl bg-gradient-to-r from-[#4c43ce] to-[#35d7ff] px-5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(53,215,255,.18)] transition-all hover:-translate-y-0.5 hover:brightness-110"
           >
             Create <span aria-hidden="true">+</span>

@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { SiteHeader } from "@/components/site-header";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 function EyeIcon({ closed = false }: { closed?: boolean }) {
   return (
@@ -149,6 +150,8 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {isLoading ? <LoadingOverlay title="Signing you in" description="Loading your workspace." /> : null}
 
           <p className="mt-7 text-center text-sm text-ink-muted">
             Don&apos;t have an account?{" "}

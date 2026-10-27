@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
 import { parseJsonResponse } from "@/lib/fetch-json";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import type { DocumentSummary } from "@/components/workspace/types";
 
 type DocumentUploadProps = {
@@ -136,6 +137,17 @@ export function DocumentUpload({
   }
 
   const statusClass = compact ? STATUS_CLASS_DARK : STATUS_CLASS_LIGHT;
+  const readyCount = documents.filter((document) => document.status === "COMPLETED").length;
+
+  const overlay =
+    uploadingNames.length > 0 ? (
+      <LoadingOverlay
+        title={uploadingNames.length > 1 ? `Uploading ${uploadingNames.length} documents` : "Uploading document"}
+        description={`Reading and indexing ${uploadingNames.join(", ")}.`}
+      />
+    ) : deletingIds.length > 0 ? (
+      <LoadingOverlay title="Removing document" description="Deleting it from this workspace." />
+    ) : null;
 
   const manageList = (
     <ul className={cn("space-y-2", compact ? "mt-2" : "mt-5")}>
@@ -282,7 +294,7 @@ export function DocumentUpload({
             }}
             className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-white hover:text-highlight"
           >
-            {documents.length} ready
+            {readyCount} ready
             <span aria-hidden="true">{expanded ? "▴" : "▾"}</span>
           </button>
         </div>
@@ -301,6 +313,7 @@ export function DocumentUpload({
         ) : null}
 
         {expanded ? manageList : null}
+        {overlay}
       </div>
     );
   }
@@ -342,6 +355,7 @@ export function DocumentUpload({
       ) : null}
 
       {manageList}
+      {overlay}
     </div>
   );
 }

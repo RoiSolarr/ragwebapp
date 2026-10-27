@@ -1,41 +1,61 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { SiteHeader } from "@/components/site-header";
 import { WorkspaceConsole } from "@/components/workspace/workspace-console";
 import { buttonClass } from "@/components/ui/button";
-import type { DocumentSummary } from "@/components/workspace/types";
+import type { ChatHistoryMessage, ChatSource, DocumentSummary } from "@/components/workspace/types";
 
 type WorkspacePageProps = { params: Promise<{ workspaceId: string }> };
 
 export default async function WorkspacePage({ params }: WorkspacePageProps) {
   const { workspaceId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const workspace = await prisma.workspace.findFirst({
-    where: { id: workspaceId, members: { some: { userId: user.id } } },
-    include: {
-      documents: {
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          name: true,
-          mimeType: true,
-          sizeBytes: true,
-          status: true,
-          error: true,
-          createdAt: true,
+  // Both queries run at once. The chat history only includes this user's
+  // own messages, and is thrown away below if they aren't a member.
+  const [workspace, messages] = await Promise.all([
+    prisma.workspace.findFirst({
+      where: { id: workspaceId, members: { some: { userId: user.id } } },
+      include: {
+        documents: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            mimeType: true,
+            sizeBytes: true,
+            status: true,
+            error: true,
+            createdAt: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.chatMessage.findMany({
+      where: { workspaceId, userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, role: true, content: true, sources: true, createdAt: true },
+    }),
+  ]);
 
   if (!workspace) notFound();
+
+  const initialMessages: ChatHistoryMessage[] = messages.flatMap((message) =>
+    message.role === "user" || message.role === "assistant"
+      ? [
+          {
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            sources: (message.sources as ChatSource[] | null) ?? [],
+            createdAt: message.createdAt.toISOString(),
+          },
+        ]
+      : []
+  );
 
   const documents: DocumentSummary[] = workspace.documents.map(
     (document: Omit<DocumentSummary, "createdAt"> & { createdAt: Date }) => ({
@@ -75,7 +95,11 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
         </div>
 
         <div className="reveal mt-2 sm:mt-3" style={{ animationDelay: "100ms" }}>
-          <WorkspaceConsole workspaceId={workspace.id} initialDocuments={documents} />
+          <WorkspaceConsole
+            workspaceId={workspace.id}
+            initialDocuments={documents}
+            initialMessages={initialMessages}
+          />
         </div>
       </main>
     </div>

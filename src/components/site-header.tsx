@@ -68,6 +68,7 @@ function LogoutForm({ className }: { className?: string }) {
         className="text-xs font-semibold text-signal hover:text-white"
         pendingChildren="Logging out…"
         spinnerClassName="h-3 w-3"
+        overlay={{ title: "Signing out", description: "Closing your session on this device." }}
       >
         Log out
       </SubmitButton>

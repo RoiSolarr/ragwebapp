@@ -1,5 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { after, NextResponse, type NextRequest } from "next/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getWorkspaceMembership } from "@/lib/workspace-access";
 import { getEmbedding } from "@/lib/ai/embeddings";
@@ -34,10 +34,7 @@ type ChatHistoryMessage = {
 };
 
 async function getAuthenticatedWorkspace(workspaceId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) return { user: null, membership: null };
   const membership = await getWorkspaceMembership(workspaceId, user.id);
@@ -64,16 +61,16 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ workspaceId: string }> }) {
   const { workspaceId } = await params;
-  const { user, membership } = await getAuthenticatedWorkspace(workspaceId);
-
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!membership) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
 
-  const rateLimit = await checkRateLimit(
-  `chat:${user.id}:${getRequestIp(request)}`,
-  30,
-  60 * 60 * 1000,
-);
+  // Independent lookups, so they run together instead of one after another.
+  const [membership, rateLimit] = await Promise.all([
+    getWorkspaceMembership(workspaceId, user.id),
+    checkRateLimit(`chat:${user.id}:${getRequestIp(request)}`, 30, 60 * 60 * 1000),
+  ]);
+
+  if (!membership) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
 
   if (!rateLimit.allowed) {
     return NextResponse.json(
@@ -95,19 +92,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!question) return NextResponse.json({ error: "A question is required" }, { status: 400 });
   if (question.length > MAX_QUESTION_LENGTH) return NextResponse.json({ error: "That question is too long." }, { status: 400 });
 
-  const userMessage = await prisma.chatMessage.create({
-    data: { workspaceId, userId: user.id, role: "user", content: question },
-  });
+  // Saving the question and embedding it don't depend on each other, so
+  // the database write happens while the embedding request is in flight.
+  const [userMessage, embeddingResult] = await Promise.all([
+    prisma.chatMessage.create({
+      data: { workspaceId, userId: user.id, role: "user", content: question },
+    }),
+    getEmbedding(question, "RETRIEVAL_QUERY").then(
+      (embedding) => ({ embedding, error: null }),
+      (error: unknown) => ({ embedding: [] as number[], error }),
+    ),
+  ]);
 
-  let queryEmbedding: number[];
-  try {
-    queryEmbedding = await getEmbedding(question, "RETRIEVAL_QUERY");
-  } catch (error) {
-    console.error("Embedding error:", error);
+  if (embeddingResult.error) {
+    console.error("Embedding error:", embeddingResult.error);
     await prisma.chatMessage.delete({ where: { id: userMessage.id } });
     return NextResponse.json({ error: "Failed to process the question. Please try again." }, { status: 502 });
   }
 
+  const queryEmbedding = embeddingResult.embedding;
   if (queryEmbedding.length === 0) {
     await prisma.chatMessage.delete({ where: { id: userMessage.id } });
     return NextResponse.json({ error: "Failed to process the question. Please try again." }, { status: 502 });
@@ -164,8 +167,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     content: chunk.content,
   }));
 
-  await prisma.chatMessage.create({
-    data: { workspaceId, userId: user.id, role: "assistant", content: answer, sources },
+  // The answer is already in hand, so save it to history after the
+  // response is sent rather than making the person wait on that write.
+  after(async () => {
+    try {
+      await prisma.chatMessage.create({
+        data: { workspaceId, userId: user.id, role: "assistant", content: answer, sources },
+      });
+    } catch (error) {
+      console.error("Failed to save chat answer:", error);
+    }
   });
 
   return NextResponse.json({

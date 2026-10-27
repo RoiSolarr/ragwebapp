@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DocumentUpload } from "@/components/workspace/document-upload";
 import { Spinner } from "@/components/ui/spinner";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { parseJsonResponse } from "@/lib/fetch-json";
-import type { ChatSource, DocumentSummary } from "@/components/workspace/types";
+import type { ChatHistoryMessage, ChatSource, DocumentSummary } from "@/components/workspace/types";
 
 type ChatMessage =
   | { id?: string; role: "user"; content: string; createdAt?: string }
@@ -15,6 +16,7 @@ type ChatMessage =
 
 type ChatPanelProps = {
   workspaceId: string;
+  initialMessages: ChatHistoryMessage[];
   hasReadyDocuments: boolean;
   documents: DocumentSummary[];
   onDocumentAdded: (document: DocumentSummary) => void;
@@ -39,45 +41,18 @@ function renderAnswer(content: string) {
 
 export function ChatPanel({
   workspaceId,
+  initialMessages,
   hasReadyDocuments,
   documents,
   onDocumentAdded,
   onDocumentRemoved,
 }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // History is loaded with the page on the server (see
+  // workspaces/[workspaceId]/page.tsx), so there's no second round trip
+  // and no "loading conversation" state after the page appears.
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [question, setQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void fetch(`/api/workspaces/${workspaceId}/chat`)
-      .then((response) =>
-        parseJsonResponse<{
-          messages: Array<{ id: string; role: string; content: string; sources?: ChatSource[]; createdAt: string }>;
-        }>(response)
-      )
-      .then((payload) => {
-        if (cancelled) return;
-        const historyMessages: ChatMessage[] = payload.messages.flatMap((message): ChatMessage[] => {
-          if (message.role === "user") return [{ ...message, role: "user" as const }];
-          if (message.role === "assistant") {
-            return [{ ...message, role: "assistant" as const, sources: message.sources ?? [] }];
-          }
-          return [];
-        });
-        setMessages(historyMessages);
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setHistoryLoaded(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,7 +94,7 @@ export function ChatPanel({
   return (
     <div className="flex h-[clamp(28rem,calc(100svh-8rem),40rem)] min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.25rem] bg-transparent p-2.5 text-white shadow-[0_12px_30px_rgba(19,44,58,.15)] sm:h-[clamp(30rem,calc(100svh-9rem),44rem)] sm:p-4">
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 sm:space-y-4">
-        {historyLoaded && messages.length === 0 ? (
+        {messages.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/15 bg-white/[.04] px-4 py-8 text-center">
             <p className="text-2xl text-highlight" aria-hidden="true">
               ⌁
@@ -129,13 +104,6 @@ export function ChatPanel({
                 ? "Ask a question about your documents to get started."
                 : "Attach a document below, then ask a question about it."}
             </p>
-          </div>
-        ) : null}
-
-        {!historyLoaded ? (
-          <div className="flex items-center gap-2 px-1 text-xs text-white/45">
-            <Spinner className="h-3.5 w-3.5" />
-            Loading conversation…
           </div>
         ) : null}
 
@@ -186,13 +154,6 @@ export function ChatPanel({
             </div>
           );
         })}
-
-        {isLoading ? (
-          <div className="flex max-w-[85%] items-center gap-2 rounded-2xl bg-white/[.09] px-4 py-3 text-sm text-white/60">
-            <Spinner className="h-3.5 w-3.5" />
-            Thinking…
-          </div>
-        ) : null}
       </div>
 
       <form onSubmit={handleSubmit} className="mt-2 shrink-0 rounded-2xl border border-white/10 bg-white/[.06] p-2 sm:mt-3">
@@ -232,6 +193,10 @@ export function ChatPanel({
           </Button>
         </div>
       </form>
+
+      {isLoading ? (
+        <LoadingOverlay title="Thinking" description="Finding the answer in your documents." />
+      ) : null}
 
       <p className="mt-1 shrink-0 px-1 text-[9px] uppercase tracking-[.1em] text-white/35 sm:mt-2 sm:text-[10px] sm:tracking-[.12em]">
         Enter to send · Shift + Enter for a new line

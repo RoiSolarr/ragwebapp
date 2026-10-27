@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseJsonResponse } from "@/lib/fetch-json";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 export type WorkspaceCardData = {
   id: string;
@@ -26,9 +27,15 @@ export function WorkspaceGrid({ initialWorkspaces }: WorkspaceGridProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [lastInitialWorkspaces, setLastInitialWorkspaces] = useState(initialWorkspaces);
+
+  // Pick up the fresh server list after a workspace is created or deleted
+  // (router.refresh / revalidatePath). Adjusting state during render, not
+  // in an effect, avoids an extra render pass each time.
+  if (initialWorkspaces !== lastInitialWorkspaces) {
+    setLastInitialWorkspaces(initialWorkspaces);
     setWorkspaces(initialWorkspaces);
-  }, [initialWorkspaces]);
+  }
 
   const allSelected = workspaces.length > 0 && selectedIds.size === workspaces.length;
 
@@ -239,6 +246,13 @@ export function WorkspaceGrid({ initialWorkspaces }: WorkspaceGridProps) {
           void deleteWorkspaceIds(ids);
         }}
       />
+
+      {isDeleting ? (
+        <LoadingOverlay
+          title={pendingDelete?.kind === "bulk" ? `Deleting ${pendingDelete.ids.length} workspaces` : "Deleting workspace"}
+          description="Removing its documents and conversations."
+        />
+      ) : null}
     </>
   );
 }

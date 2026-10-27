@@ -1,9 +1,15 @@
+import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getEmbedding } from "@/lib/ai/embeddings";
+import { getEmbeddings } from "@/lib/ai/embeddings";
 import { chunkText } from "@/lib/documents/chunk-text";
 import { extractText, resolveDocumentType, validateDocumentBuffer } from "@/lib/documents/extract-text";
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+// Rows per INSERT statement. Each row carries a 768-number vector, so this
+// keeps a single statement to a few MB.
+const CHUNK_INSERT_BATCH_SIZE = 100;
 
 export class UploadValidationError extends Error {}
 
@@ -44,24 +50,24 @@ export async function ingestDocument({ workspaceId, fileName, mimeType, buffer }
     const chunks = chunkText(text);
     if (chunks.length === 0) throw new Error("No readable text was found in this file.");
 
-    for (const [chunkIndex, content] of chunks.entries()) {
-      const embedding = await getEmbedding(content, "RETRIEVAL_DOCUMENT");
-      if (embedding.length === 0) throw new Error("Failed to generate embeddings for this document.");
+    // One embedding request per 100 chunks and one INSERT per 100 rows
+    // (chunk text and vector together), instead of an API call plus two
+    // database writes for every single chunk.
+    const embeddings = await getEmbeddings(chunks, "RETRIEVAL_DOCUMENT");
+    if (embeddings.some((embedding) => embedding.length === 0)) {
+      throw new Error("Failed to generate embeddings for this document.");
+    }
 
-      const vectorString = `[${embedding.join(",")}]`;
-      const chunk = await prisma.documentChunk.create({
-        data: {
-          documentId: document.id,
-          content,
-          chunkIndex,
-          tokenCount: Math.ceil(content.length / 4),
-        },
+    for (let start = 0; start < chunks.length; start += CHUNK_INSERT_BATCH_SIZE) {
+      const rows = chunks.slice(start, start + CHUNK_INSERT_BATCH_SIZE).map((content, offset) => {
+        const chunkIndex = start + offset;
+        const vectorString = `[${embeddings[chunkIndex].join(",")}]`;
+        return Prisma.sql`(${randomUUID()}::uuid, ${document.id}::uuid, ${content}, ${chunkIndex}, ${Math.ceil(content.length / 4)}, ${vectorString}::vector)`;
       });
 
       await prisma.$executeRaw`
-        UPDATE "DocumentChunk"
-        SET "embedding" = ${vectorString}::vector
-        WHERE id = ${chunk.id}::uuid;
+        INSERT INTO "DocumentChunk" ("id", "documentId", "content", "chunkIndex", "tokenCount", "embedding")
+        VALUES ${Prisma.join(rows)};
       `;
     }
 
